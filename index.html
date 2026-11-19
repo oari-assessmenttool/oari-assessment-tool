@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Workforce Vulnerability Assessment Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --ink:#14202e; --muted:#5b6776; --line:#d9dee5;
+  --accent:#1f4e79; --field:#ffffff;
+  --l1:#3f8f6b; --l2:#8fb35a; --l3:#e0b43c; --l4:#e0813c; --l5:#c2453d;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161d; --card:#17202a; --ink:#e8edf3; --muted:#9aa7b6; --line:#2a3644; --accent:#7fb2e0; --field:#10161d;
+    --l1:#4fae86; --l2:#a2c46f; --l3:#e8c258; --l4:#ee9552; --l5:#d9645c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161d; --card:#17202a; --ink:#e8edf3; --muted:#9aa7b6; --line:#2a3644; --accent:#7fb2e0; --field:#10161d;
+  --l1:#4fae86; --l2:#a2c46f; --l3:#e8c258; --l4:#ee9552; --l5:#d9645c;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font:16px/1.55 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+main{max-width:980px;margin:0 auto;padding:28px 20px 48px}
+h1{font-size:1.65rem;line-height:1.25;margin:0 0 6px;font-weight:600}
+.sub{color:var(--muted);margin:0 0 24px;max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
+label{display:block;font-weight:500;margin:0 0 6px}
+.hint{display:block;color:var(--muted);font-size:.85rem;font-weight:400;margin-top:2px}
+.field{margin-bottom:18px}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);
+  border-radius:8px;padding:10px 12px;min-height:44px}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.warn{color:var(--l5);font-size:.88rem;min-height:1.3em;margin:6px 0 0}
+.score{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.num{font:500 3.4rem/1 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;letter-spacing:-.02em}
+.lvl{font-weight:600;font-size:1.1rem}
+.scale{position:relative;margin:22px 0 8px;height:12px;border-radius:6px;display:flex;overflow:hidden}
+.scale span{display:block;height:100%}
+.pin{position:absolute;top:-6px;width:3px;height:24px;background:var(--ink);border-radius:2px;transform:translateX(-1.5px);transition:left .25s}
+.ticks{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem}
+h2{font-size:1.05rem;margin:26px 0 8px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+td{padding:7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td:last-child{text-align:right;font-family:"IBM Plex Mono",ui-monospace,monospace;white-space:nowrap}
+tr.total td{border-bottom:0;font-weight:600;padding-top:10px}
+.pos{color:var(--l5)} .neg{color:var(--l1)}
+.note{color:var(--muted);font-size:.88rem}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.9em}
+footer{margin-top:22px}
+</style>
+</head>
+<body>
+<main>
+  <h1>AI Workforce Vulnerability Assessment Tool</h1>
+  <p class="sub">Estimates the Occupational AI Risk Index (OARI) of an entry-level job posting in the Philippines.</p>
+
+  <div class="grid">
+    <section class="card" aria-label="Job posting inputs">
+      <div class="field">
+        <label for="salary">Offered monthly salary (PHP)<span class="hint">Sample range: PHP 12,000 to PHP 39,000</span></label>
+        <input id="salary" type="number" inputmode="numeric" min="1" step="500" value="20000">
+        <p class="warn" id="warn" role="status"></p>
+      </div>
+      <div class="field">
+        <label for="fn">Job function</label>
+        <select id="fn">
+          <option value="clerical">Clerical &amp; Administrative</option>
+          <option value="support">Customer Support &amp; Service</option>
+          <option value="finance">Financial Analysis &amp; Compliance</option>
+          <option value="sales">Sales &amp; Marketing</option>
+          <option value="tech">Technical &amp; IT Support</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ind">Industry sector</label>
+        <select id="ind">
+          <option value="bpo">Business Process Outsourcing (BPO)</option>
+          <option value="non">Non-BPO</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="mod">Work modality</label>
+        <select id="mod">
+          <option value="on">On-site</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="off">Offsite (remote)</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="card" aria-live="polite" aria-label="Estimated OARI">
+      <div class="note">Estimated OARI (1.00 to 5.00)</div>
+      <div class="score"><span class="num" id="oari">–</span><span class="lvl" id="level"></span></div>
+      <div class="scale" aria-hidden="true">
+        <span style="flex:80;background:var(--l1)"></span><span style="flex:80;background:var(--l2)"></span>
+        <span style="flex:80;background:var(--l3)"></span><span style="flex:80;background:var(--l4)"></span>
+        <span style="flex:80;background:var(--l5)"></span>
+        <i class="pin" id="pin" style="left:0"></i>
+      </div>
+      <div class="ticks"><span>1.00 Low</span><span>Moderate</span><span>High 5.00</span></div>
+
+      <h2>What drives this score</h2>
+      <p class="note" style="margin:0 0 6px">Reference group: Clerical &amp; Administrative, Non-BPO, On-site. A positive value raises vulnerability; a negative value lowers it.</p>
+      <table id="drivers"></table>
+    </section>
+  </div>
+
+  <footer class="card" style="margin-top:20px">
+    <h2 style="margin-top:0">Model</h2>
+    <p><code>OARI = 15.632 − 1.247·ln(salary) + job function + 0.229·BPO + modality</code></p>
+    <p class="note">Multiple regression of 385 sampled entry-level online job postings (Chapter 4, Table 4.10): R² = 0.601, F(8, 376) = 70.69, p &lt; 0.001. Levels follow Table 4.2: Low 1.00–1.80, Low-Moderate 1.81–2.60, Moderate 2.61–3.40, Moderate-High 3.41–4.20, High 4.21–5.00. This is a screening estimate, not a prediction for one individual job. Salaries in the sample ranged from PHP 12,000 to PHP 39,000.</p>
+  </footer>
+</main>
+
+<script>
+/* ===== model (kept separate from the page code so it can be tested) ===== */
+// MODEL-START
+var COEF = {
+  constant: 15.632, lnSalary: -1.247, bpo: 0.229,
+  fn: { clerical: 0, finance: 0.128, support: -0.151, sales: -0.546, tech: -0.566 },
+  mod: { on: 0, off: 0.155, hybrid: -0.216 }
+};
+function estimate(salary, fn, bpo, mod) {
+  var parts = {
+    constant: COEF.constant,
+    salary: COEF.lnSalary * Math.log(salary),
+    industry: bpo ? COEF.bpo : 0,
+    fn: COEF.fn[fn],
+    mod: COEF.mod[mod]
+  };
+  var total = parts.constant + parts.salary + parts.industry + parts.fn + parts.mod;
+  return { parts: parts, total: total };
+}
+function levelOf(v) {
+  var r = Math.round(v * 100) / 100;
+  if (r <= 1.80) return { name: "Low Vulnerability", c: "var(--l1)" };
+  if (r <= 2.60) return { name: "Low-Moderate Vulnerability", c: "var(--l2)" };
+  if (r <= 3.40) return { name: "Moderate Vulnerability", c: "var(--l3)" };
+  if (r <= 4.20) return { name: "Moderate-High Vulnerability", c: "var(--l4)" };
+  return { name: "High Vulnerability", c: "var(--l5)" };
+}
+// MODEL-END
+
+var $ = function (id) { return document.getElementById(id); };
+var fmt = function (v) { return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(3); };
+function render() {
+  var salary = parseFloat($("salary").value);
+  var warn = $("warn");
+  if (!isFinite(salary) || salary <= 0) {
+    $("oari").textContent = "–"; $("level").textContent = ""; $("drivers").innerHTML = "";
+    warn.textContent = "Enter an offered monthly salary greater than zero."; return;
+  }
+  warn.textContent = (salary < 12000 || salary > 39000)
+    ? "This salary is outside the sample range (PHP 12,000 to PHP 39,000), so the estimate is less reliable." : "";
+  var e = estimate(salary, $("fn").value, $("ind").value === "bpo", $("mod").value);
+  var shown = Math.min(5, Math.max(1, e.total));
+  var lv = levelOf(shown);
+  $("oari").textContent = shown.toFixed(2);
+  $("level").textContent = lv.name; $("level").style.color = lv.c;
+  $("pin").style.left = ((shown - 1) / 4 * 100) + "%";
+  var rows = [
+    ["Constant", e.parts.constant, true],
+    ["Salary (−1.247 × ln " + Math.round(salary).toLocaleString("en-US") + ")", e.parts.salary, true],
+    ["Industry: " + $("ind").selectedOptions[0].text, e.parts.industry, false],
+    ["Job function: " + $("fn").selectedOptions[0].text, e.parts.fn, false],
+    ["Work modality: " + $("mod").selectedOptions[0].text, e.parts.mod, false]
+  ];
+  var html = rows.map(function (r) {
+    var cls = r[2] ? "" : (r[1] > 0 ? "pos" : r[1] < 0 ? "neg" : "");
+    var val = r[2] ? (r[1] < 0 ? "−" : "") + Math.abs(r[1]).toFixed(3) : fmt(r[1]);
+    return "<tr><td>" + r[0] + "</td><td class=\"" + cls + "\">" + val + "</td></tr>";
+  }).join("");
+  html += "<tr class=\"total\"><td>Estimated OARI" + (e.total !== shown ? " (limited to 1.00–5.00)" : "") + "</td><td>" + shown.toFixed(2) + "</td></tr>";
+  $("drivers").innerHTML = html;
+}
+["salary", "fn", "ind", "mod"].forEach(function (id) { $(id).addEventListener("input", render); });
+render();
+</script>
+</body>
+</html>
